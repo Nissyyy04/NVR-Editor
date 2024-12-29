@@ -10,6 +10,7 @@ import string
 from PluginUtilities import PluginLoader
 from Config import config
 from textual.widgets.tree import TreeNode
+from CustomWidgets import NVRTextArea
 
 class NVRMain(App):
     """Application with multiple screens."""
@@ -21,16 +22,20 @@ class NVRMain(App):
     TITLE = "A simple Code Editor made in Python!"
     CSS_PATH = "styles.tcss"
 
+    lastFocused: Widget = None
+
     BINDINGS = [
-        Binding("alt+b", "popScreen", "Back", "Go back to last Screen", priority=True, tooltip="Go back to last Screen"),
+        Binding(key="b", action="pop_screen", description="Go back to last Screen", priority=True, tooltip="Go back to last Screen", system=True, show="Back"),
         Binding("ctrl+r", "refresh", "Refresh", "Refresh the screen", priority=True, tooltip="Refresh the screen"),
         Binding("escape", "back", "CD ..", "Go back one directory", priority=False, tooltip="Go back one directory"),
         Binding("ctrl+o", "openSettings", "Settings", "Open the settings screen", priority=True, tooltip="Open the settings screen"),
     ]
 
-    async def action_popScreen(self) -> None:
-        self.app.notify("YES")
-        if len(self.app.screen_stack) > 1:
+    async def on_descendant_focus(self, event: DescendantFocus) -> None:
+        self.lastFocused = event.control
+
+    async def action_pop_screen(self) -> None:
+        if len(self.app.screen_stack) > 1 and self.lastFocused is not NVRTextArea and self.lastFocused is not Input:
             self.app.pop_screen()
 
     async def action_back(self) -> None:
