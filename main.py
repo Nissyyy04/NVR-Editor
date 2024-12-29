@@ -22,10 +22,16 @@ class NVRMain(App):
     CSS_PATH = "styles.tcss"
 
     BINDINGS = [
-        Binding("escape", "back", "Back", "Go back one directory", priority=False, tooltip="Go back one directory"),
+        Binding("alt+b", "popScreen", "Back", "Go back to last Screen", priority=True, tooltip="Go back to last Screen"),
         Binding("ctrl+r", "refresh", "Refresh", "Refresh the screen", priority=True, tooltip="Refresh the screen"),
+        Binding("escape", "back", "CD ..", "Go back one directory", priority=False, tooltip="Go back one directory"),
         Binding("ctrl+o", "openSettings", "Settings", "Open the settings screen", priority=True, tooltip="Open the settings screen"),
     ]
+
+    async def action_popScreen(self) -> None:
+        self.app.notify("YES")
+        if len(self.app.screen_stack) > 1:
+            self.app.pop_screen()
 
     async def action_back(self) -> None:
         # Go back one directory

@@ -1,6 +1,7 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.widgets import *
+from CustomWidgets import NVRTextArea
 import textual.containers as containers
 from textual.containers import Container
 from textual.screen import Screen
@@ -125,14 +126,14 @@ class MergerScreen(Screen):
                 cont3.styles.align = ("center", "middle")
 
                 with containers.Horizontal() as cont:
-                    textArea = TextArea.code_editor(snippet['code'], language="python", theme=config.textAreaTheme)
+                    textArea = NVRTextArea.code_editor(snippet['code'], language="python", theme=config.textAreaTheme)
                     yield textArea
 
                     acceptButton = Button("Accept", id=f"acceptButton", variant="primary")
                     acceptButton.textarea = textArea
                     acceptButton.container = cont3
 
-                    denyButton = Button("Deny", id="declineButton", variant="error")
+                    denyButton = Button("Deny", id="declineButton", variant="warning")
                     denyButton.container = cont3
 
                     with containers.Vertical() as cont2:
@@ -332,7 +333,7 @@ class ScreenObject(Screen):
 
         with containers.VerticalScroll() as container:
             container.can_focus = False
-            self.textArea = TextArea.code_editor(text=self.contentsOfFile, language="python", theme=config.textAreaTheme)
+            self.textArea = NVRTextArea.code_editor(text=self.contentsOfFile, language="python", theme=config.textAreaTheme)
             yield self.textArea
 
             with Collapsible(title="NEVER Coder") as collapsible:
@@ -340,7 +341,7 @@ class ScreenObject(Screen):
                     cont.can_focus = False
                     cont.styles.margin = (0, 4, 0, 0)
                     collapsible.styles.max_height = "40%"
-                    self.aiChat = TextArea.code_editor("", language="python", theme=config.textAreaTheme, read_only=True)
+                    self.aiChat = NVRTextArea.code_editor("", language="python", theme=config.textAreaTheme, read_only=True)
                     yield self.aiChat
                     yield Input(placeholder="Type here...").set_styles("dock: bottom; margin: 0 0 1 0;")
 
@@ -396,6 +397,12 @@ class ScreenObject(Screen):
             self.notify("Please wait a moment.")
             self.aiChat.set_loading(True)
             try:
+                compile(self.textArea.text, '<string>', 'exec')
+            except Exception as e:
+                self.aiChat.load_text(self.aiChat.text + "NEVER: " + str(e) + "\n")
+                self.aiChat.set_loading(False)
+                break
+            try:
                 fullyMergedCode, response, snippets = await to_thread(
                     self.never.generate, self.textArea.text, event.value
                 )
@@ -415,10 +422,7 @@ class ScreenObject(Screen):
                 self.aiChat.load_text(self.aiChat.text + "NEVER: Cancelled Generation!" + "\n")
                 self.aiChat.set_loading(False)
                 break
-            except Exception as e:
-                self.never.history.pop()
-                self.never.history.pop()
-                self.aiChat.set_loading(False)
+           
 
     def populate_tree(self, node: TreeNode, path):
         """Recursively populate the self.tree with files and folders."""
@@ -513,3 +517,5 @@ class ScreenObject(Screen):
             self.title = "*" + os.path.basename(self.filePath)
         else:
             self.title = os.path.basename(self.filePath)
+
+        event.can_replace

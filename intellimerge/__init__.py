@@ -2,7 +2,10 @@ import ast
 
 def merge(code:str, snippet) -> str:
     # Step 1: Parse the existing file
-    existing_tree = ast.parse(code)
+    try:
+        existing_tree = ast.parse(code)
+    except Exception:
+        raise SyntaxError("Invalid Python code")
 
     # Step 2: Parse the snippet
     snippet_tree = ast.parse(snippet)

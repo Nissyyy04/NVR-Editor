@@ -81,7 +81,7 @@ Each function that has a parent class should be in that class context within all
                 'content': userPrompt,
             })
 
-        response: ChatResponse = chat(model='qwen2.5-coder', messages=self.history)
+        response: ChatResponse = chat(model='granite3.1-dense', messages=self.history)
 
         self.history.append({
             'role': 'assistant',

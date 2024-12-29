@@ -49,8 +49,6 @@ class ScreenObject(Screen):
             config.autoMerge = event.radio_button.value
 
 
-
-
     def compose(self) -> ComposeResult:
         self.PL = main.PluginLoader(self.app, "Plugins")
         self.PL.load_plugins()
