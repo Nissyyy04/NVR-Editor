@@ -10,8 +10,6 @@ from PluginUtilities import PluginLoader, Plugin
 import os
 from Config import config
 from textual.widgets.tree import TreeNode
-from ollama import chat
-from ollama import ChatResponse
 import re, json
 import assistant, intellimerge
 from textual import work
@@ -19,6 +17,7 @@ from asyncio import to_thread
 import asyncio
 from datetime import datetime, timedelta
 from textual.events import DescendantFocus
+import subprocess
 
 def remove_code_snippets(markdown_text):
     """
@@ -285,7 +284,6 @@ class ScreenObject(Screen):
 
 
             with Container().set_styles(f"width: 100%; padding: 0 0 1 0;") as innerCont2:
-
                 self.fileTree = Tree(f"{self.mainDirectory}")
                 self.fileTree.root.expand()
                 self.populate_tree(self.fileTree.root, self.mainDirectory)
@@ -337,16 +335,14 @@ class ScreenObject(Screen):
             yield self.textArea
 
             with Collapsible(title="NEVER Coder") as collapsible:
+                collapsible.styles.max_height = "50%"
+                self.aiChatCollapsible = collapsible
                 with containers.Vertical() as cont:
                     cont.can_focus = False
                     cont.styles.margin = (0, 4, 0, 0)
-                    collapsible.styles.max_height = "40%"
                     self.aiChat = NVRTextArea.code_editor("", language="python", theme=config.textAreaTheme, read_only=True)
                     yield self.aiChat
                     yield Input(placeholder="Type here...").set_styles("dock: bottom; margin: 0 0 1 0;")
-
-
-            self.aiChat.text
 
         yield Header(show_clock=True)
         yield Footer()
@@ -378,6 +374,7 @@ class ScreenObject(Screen):
             event.input.remove()
             self.fileTree.clear()
             self.populate_tree(self.fileTree.root, self.mainDirectory)
+
         elif event.input.id == "deleteFileInput" and event.value != "":
             try:
                 os.remove(os.path.join(self.mainDirectory, event.value))
@@ -385,6 +382,7 @@ class ScreenObject(Screen):
                 self.fileTree.clear()
                 self.populate_tree(self.fileTree.root, self.mainDirectory)
             except Exception as e: pass
+
         else:
             try:
                 self.aiCodeHistory.append(self.textArea.text)
@@ -422,7 +420,6 @@ class ScreenObject(Screen):
                 self.aiChat.load_text(self.aiChat.text + "NEVER: Cancelled Generation!" + "\n")
                 self.aiChat.set_loading(False)
                 break
-           
 
     def populate_tree(self, node: TreeNode, path):
         """Recursively populate the self.tree with files and folders."""

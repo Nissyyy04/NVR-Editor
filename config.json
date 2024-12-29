@@ -1,5 +1,5 @@
 {
     "theme": "dracula",
-    "textAreaTheme": "css",
+    "textAreaTheme": "vscode_dark",
     "autoMerge": false
 }
