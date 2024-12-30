@@ -24,6 +24,8 @@ class NVRMain(App):
 
     lastFocused: Widget = None
 
+    thisFilePath = os.path.realpath(os.path.basename(__file__))
+
     BINDINGS = [
         Binding(key="b", action="pop_screen", description="Go back to last Screen", priority=True, tooltip="Go back to last Screen", system=True, show="Back"),
         Binding("ctrl+r", "refresh", "Refresh", "Refresh the screen", priority=True, tooltip="Refresh the screen"),
@@ -75,7 +77,7 @@ class NVRMain(App):
         self.theme = config.theme
         
     def compose(self) -> ComposeResult:
-        self.PL = PluginLoader(self.app, "Plugins")
+        self.PL = PluginLoader(self.app, os.path.join(self.thisFilePath, "Plugins"))
         self.PL.load_plugins()
 
         self.driveTree = Tree("Drives")

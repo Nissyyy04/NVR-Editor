@@ -50,7 +50,7 @@ class ScreenObject(Screen):
 
 
     def compose(self) -> ComposeResult:
-        self.PL = main.PluginLoader(self.app, "Plugins")
+        self.PL = main.PluginLoader(self.app,  "Plugins")
         self.PL.load_plugins()
 
         self.themes = [

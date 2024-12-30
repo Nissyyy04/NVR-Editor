@@ -17,7 +17,7 @@ from asyncio import to_thread
 import asyncio
 from datetime import datetime, timedelta
 from textual.events import DescendantFocus
-import subprocess
+from textual import events
 
 def remove_code_snippets(markdown_text):
     """
@@ -178,8 +178,11 @@ class ScreenObject(Screen):
     mainDirectory = None
 
     aiCodeHistory = []
+    errorHistory = {}
 
-    never = assistant.ArtificialIntelligence("NEVER")
+    thisFilePath = os.path.realpath(__file__)
+
+    never = assistant.ArtificialIntelligence(promptPath=os.path.join(thisFilePath, ".prompts\\neverPrompt.txt"))
 
     currentReverts = 0
 
@@ -514,5 +517,3 @@ class ScreenObject(Screen):
             self.title = "*" + os.path.basename(self.filePath)
         else:
             self.title = os.path.basename(self.filePath)
-
-        event.can_replace
