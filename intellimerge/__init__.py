@@ -4,97 +4,61 @@ def merge(code: str, snippet: str) -> str:
     # Step 1: Parse the existing file
     try:
         existing_tree = ast.parse(code)
-    except Exception:
-        raise SyntaxError("Invalid Python code")
+    except SyntaxError:
+        raise SyntaxError("Invalid Python code in 'code'")
 
     # Step 2: Parse the snippet
-    snippet_tree = ast.parse(snippet)
+    try:
+        snippet_tree = ast.parse(snippet)
+    except SyntaxError:
+        raise SyntaxError("Invalid Python code in 'snippet'")
 
-    # Step 3: Process top-level nodes
+    # Step 3: Categorize nodes
     existing_body = existing_tree.body
-    existing_functions = {
-        node.name: node for node in existing_body if isinstance(node, ast.FunctionDef)
-    }
-    existing_classes = {
-        node.name: node for node in existing_body if isinstance(node, ast.ClassDef)
-    }
+    snippet_body = snippet_tree.body
 
-    def contains_deletion_comment(node):
-        """Check if the node contains a deletion comment."""
-        if not hasattr(node, 'body'):
-            return False
-        for stmt in node.body:
-            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
-                comment = stmt.value.value
-                if isinstance(comment, str) and any(keyword in comment.lower() for keyword in [
-                    "#remove me", "#delete me", "#delete this", "#delete func", "#delete function"]):
-                    return True
-        return False
+    # Separate imports, classes, functions, and other global statements
+    existing_imports = [node for node in existing_body if isinstance(node, (ast.Import, ast.ImportFrom))]
+    existing_functions = [node for node in existing_body if isinstance(node, ast.FunctionDef)]
+    existing_classes = [node for node in existing_body if isinstance(node, ast.ClassDef)]
+    existing_others = [node for node in existing_body if node not in existing_imports + existing_functions + existing_classes]
 
-    # Remove functions or methods with deletion comments
-    def filter_nodes(body):
-        filtered_body = []
-        for node in body:
-            if isinstance(node, ast.FunctionDef):
-                if not contains_deletion_comment(node):
-                    filtered_body.append(node)
-                else:
-                    print(f"Removed: {node.name}")
-            elif isinstance(node, ast.ClassDef):
-                # Filter methods in the class
-                node.body = filter_nodes(node.body)
-                filtered_body.append(node)
-            else:
-                filtered_body.append(node)
-        return filtered_body
+    snippet_imports = [node for node in snippet_body if isinstance(node, (ast.Import, ast.ImportFrom))]
+    snippet_functions = [node for node in snippet_body if isinstance(node, ast.FunctionDef)]
+    snippet_classes = [node for node in snippet_body if isinstance(node, ast.ClassDef)]
+    snippet_others = [node for node in snippet_body if node not in snippet_imports + snippet_functions + snippet_classes]
 
-    existing_body = filter_nodes(existing_body)
+    # Merge imports: Add only unique imports
+    merged_imports = {ast.dump(node): node for node in existing_imports + snippet_imports}.values()
 
-    for snippet_node in snippet_tree.body:
-        if isinstance(snippet_node, ast.FunctionDef):
+    # Merge functions: Replace or add functions
+    existing_functions_dict = {node.name: node for node in existing_functions}
+    for snippet_function in snippet_functions:
+        existing_functions_dict[snippet_function.name] = snippet_function
+    merged_functions = list(existing_functions_dict.values())
 
-            # Handle functions
-            if snippet_node.name in existing_functions:
-                # Replace the existing function
-                for i, node in enumerate(existing_body):
-                    if isinstance(node, ast.FunctionDef) and node.name == snippet_node.name:
-                        existing_body[i] = snippet_node
-                        break
-            else:
-                # Add the new function
-                existing_body.append(snippet_node)
+    # Merge classes: Replace or add classes
+    existing_classes_dict = {node.name: node for node in existing_classes}
+    for snippet_class in snippet_classes:
+        if snippet_class.name in existing_classes_dict:
+            # Merge class methods
+            existing_class = existing_classes_dict[snippet_class.name]
+            existing_methods = {method.name: method for method in existing_class.body if isinstance(method, ast.FunctionDef)}
+            for method in snippet_class.body:
+                if isinstance(method, ast.FunctionDef):
+                    existing_methods[method.name] = method
+            existing_class.body = list(existing_methods.values())
+        else:
+            existing_classes_dict[snippet_class.name] = snippet_class
+    merged_classes = list(existing_classes_dict.values())
 
-        elif isinstance(snippet_node, ast.ClassDef):
-            # Handle classes
-            if snippet_node.name in existing_classes:
-                # Merge methods in the class
-                existing_class = existing_classes[snippet_node.name]
-                existing_methods = {
-                    method.name: method
-                    for method in existing_class.body
-                    if isinstance(method, ast.FunctionDef)
-                }
-                snippet_methods = {
-                    method.name: method
-                    for method in snippet_node.body
-                    if isinstance(method, ast.FunctionDef)
-                }
+    # Handle global code (others): Overwrite or replace entirely
+    merged_others = snippet_others if snippet_others else existing_others
 
-                for method_name, snippet_method in snippet_methods.items():
-                    if method_name in existing_methods:
-                        # Replace the method
-                        for i, node in enumerate(existing_class.body):
-                            if isinstance(node, ast.FunctionDef) and node.name == method_name:
-                                existing_class.body[i] = snippet_method
-                                break
-                    else:
-                        # Add the new method
-                        existing_class.body.append(snippet_method)
-            else:
-                # Add the new class
-                existing_body.append(snippet_node)
+    # Combine everything back together
+    new_body = list(merged_imports) + merged_classes + merged_functions + merged_others
+    existing_tree.body = new_body
 
     # Step 4: Write back the modified code
     modified_code = ast.unparse(existing_tree)
-
     return modified_code

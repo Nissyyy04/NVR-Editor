@@ -1,14 +1,44 @@
 from textual.widgets import TextArea
 from textual import events
-from rich.console import RenderableType
-from typing_extensions import Literal
 
 class NVRTextArea(TextArea):
     """A subclass of TextArea with enhanced functionality."""
 
-    def __init__(self, text = "", *, language = None, theme = "css", soft_wrap = True, tab_behavior = "focus", read_only = False, show_line_numbers = False, line_number_start = 1, max_checkpoints = 50, name = None, id = None, classes = None, disabled = False, tooltip = None):
-        super().__init__(text, language=language, theme=theme, soft_wrap=soft_wrap, tab_behavior=tab_behavior, read_only=read_only, show_line_numbers=show_line_numbers, line_number_start=line_number_start, max_checkpoints=max_checkpoints, name=name, id=id, classes=classes, disabled=disabled, tooltip=tooltip)
-    
+    def __init__(
+        self, 
+        text="", 
+        *, 
+        language=None, 
+        theme="css", 
+        soft_wrap=True, 
+        tab_behavior="focus", 
+        read_only=False, 
+        show_line_numbers=False, 
+        line_number_start=1, 
+        max_checkpoints=50, 
+        name=None, 
+        id=None, 
+        classes=None, 
+        disabled=False, 
+        tooltip=None
+    ):
+        super().__init__(
+            text, 
+            language=language, 
+            theme=theme, 
+            soft_wrap=soft_wrap, 
+            tab_behavior=tab_behavior, 
+            read_only=read_only, 
+            show_line_numbers=show_line_numbers, 
+            line_number_start=line_number_start, 
+            max_checkpoints=max_checkpoints, 
+            name=name, 
+            id=id, 
+            classes=classes, 
+            disabled=disabled, 
+            tooltip=tooltip
+        )
+
     def _on_key(self, event: events.Key) -> None:
         if event.character == "(":
             self.insert("()")
@@ -35,6 +65,18 @@ class NVRTextArea(TextArea):
             self.move_cursor_relative(columns=-1)
             event.prevent_default()
 
+        elif event.key == "enter":
+            # Determine the current line's indentation
+            cursor_line = self.cursor_location[0]
+            lines = self.text.splitlines()
+            if 0 <= cursor_line < len(lines):
+                current_line = lines[cursor_line]
+                leading_whitespace = len(current_line) - len(current_line.lstrip())
+                indentation = current_line[:leading_whitespace]
+
+                # Insert a newline with the same indentation
+                self.insert("\n" + indentation)
+                event.prevent_default()
 
         elif event.key == "backspace":
             current_position = self.cursor_location[1] - 1

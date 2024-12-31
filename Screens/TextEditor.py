@@ -64,7 +64,7 @@ class ProjectSettingsScreen(Screen):
             self.notify(f"Please refresh the Code Editor to reload the plugins.")
 
     def compose(self) -> ComposeResult:
-        self.PL = PluginLoader(self.app, "Plugins")
+        self.PL = PluginLoader(self.app, os.path.join(config.documentNever, "Plugins"))
         self.PL.load_plugins()
                     
         with containers.ScrollableContainer() as container:
@@ -76,8 +76,7 @@ class ProjectSettingsScreen(Screen):
                     pluginsScroll.can_focus = False
                     pluginsScroll.add_class("accent")
                     pluginsScroll.set_styles("width: 100%; height: auto; padding: 0 0 0 0;")
-                    nvrDirectory = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-                    pluginsPath = os.path.join(nvrDirectory, "Plugins")  # Correct path joining
+                    pluginsPath = os.path.join(config.documentNever, "Plugins")  # Correct path joining
 
                     if os.path.exists(pluginsPath) and os.path.isdir(pluginsPath) and self.PL:
                         for plugin_name, plugin in self.PL.plugins.items():
@@ -178,14 +177,11 @@ class ScreenObject(Screen):
     mainDirectory = None
 
     aiCodeHistory = []
-    errorHistory = {}
-
     thisFilePath = os.path.realpath(__file__)
 
-    never = assistant.ArtificialIntelligence(promptPath=os.path.join(thisFilePath, ".prompts\\neverPrompt.txt"))
+    never = assistant.ArtificialIntelligence(promptPath=os.path.join(thisFilePath, os.path.join(config.documentNever, ".prompts", "neverPrompt.txt")))
 
     currentReverts = 0
-
     lastExpandedNodeTime = datetime.now()
 
     BINDINGS = [

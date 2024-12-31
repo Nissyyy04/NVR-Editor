@@ -24,10 +24,10 @@ class NVRMain(App):
 
     lastFocused: Widget = None
 
-    thisFilePath = os.path.realpath(os.path.basename(__file__))
+    documentNever = os.path.join(os.getenv("USERPROFILE"), "Documents", "NEVER Editor")
 
     BINDINGS = [
-        Binding(key="b", action="pop_screen", description="Go back to last Screen", priority=True, tooltip="Go back to last Screen", system=True, show="Back"),
+        Binding(key="b", action="pop_screen", description="Go back to last Screen", priority=True, tooltip="Go back to last Screen", show="Back"),
         Binding("ctrl+r", "refresh", "Refresh", "Refresh the screen", priority=True, tooltip="Refresh the screen"),
         Binding("escape", "back", "CD ..", "Go back one directory", priority=False, tooltip="Go back one directory"),
         Binding("ctrl+o", "openSettings", "Settings", "Open the settings screen", priority=True, tooltip="Open the settings screen"),
@@ -74,10 +74,11 @@ class NVRMain(App):
 
     def on_mount(self) -> None:
         """Set up screens when the app starts."""
+        config.documentNever = self.documentNever
         self.theme = config.theme
         
     def compose(self) -> ComposeResult:
-        self.PL = PluginLoader(self.app, os.path.join(self.thisFilePath, "Plugins"))
+        self.PL = PluginLoader(self.app, os.path.join(config.documentNever, "Plugins"))
         self.PL.load_plugins()
 
         self.driveTree = Tree("Drives")

@@ -17,7 +17,6 @@ class ScreenObject(Screen):
     contentsOfFile: str = None
 
     selectedProcessID = None
-    filePath = None
 
     def __init__(self, name = None, id = None, classes = None):
         super().__init__(name, id, classes)
@@ -50,7 +49,7 @@ class ScreenObject(Screen):
 
 
     def compose(self) -> ComposeResult:
-        self.PL = main.PluginLoader(self.app,  "Plugins")
+        self.PL = main.PluginLoader(self.app, os.path.join(config.documentNever, "Plugins"))
         self.PL.load_plugins()
 
         self.themes = [
