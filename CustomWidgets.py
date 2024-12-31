@@ -106,6 +106,21 @@ class NVRTextArea(TextArea):
                 self.insert("\n" + indentation)
                 event.prevent_default()
 
+        elif event.key == "tab":
+            if self.selection:
+                start_line = self.selection[0][0]
+                end_line = self.selection[1][0]
+
+                # Ensure the order of selection (start -> end)
+                if start_line > end_line:
+                    start_line, end_line = end_line, start_line
+
+                # Insert a tab at the beginning of each selected line
+                for y in range(start_line, end_line + 1):
+                    self.insert("\t", (y, 0))
+
+                event.prevent_default()
+
         elif event.key == "backspace":
             current_position = self.cursor_location[1] - 1
 

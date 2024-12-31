@@ -39,9 +39,15 @@ class ScreenObject(Screen):
             self.refresh(repaint=True, layout=False, recompose=False)
 
         elif event.option_list.id == "ollamaList":
-            config.set("ollamaModel", event.option.prompt)
-            config.ollamaModel = event.option.prompt
-            self.modelLabel.text = f"Local Models: {config.ollamaModel}"
+            if event.option.prompt == "None":
+                config.set("ollamaModel", None)
+                config.ollamaModel = None
+                self.modelLabel.text = f"Local Models: {config.ollamaModel}"
+            else:
+                config.set("ollamaModel", event.option.prompt)
+                config.ollamaModel = event.option.prompt
+                self.modelLabel.text = f"Local Models: {config.ollamaModel}"
+
 
     
     async def on_radio_button_changed(self, event: RadioButton.Changed) -> None:
@@ -55,6 +61,10 @@ class ScreenObject(Screen):
         elif event.radio_button.id == "autoMergeButton":
             config.set("autoMerge", event.radio_button.value)
             config.autoMerge = event.radio_button.value
+
+        elif event.radio_button.id == "autoSaveRadio":
+            config.set("autoSave", event.radio_button.value)
+            config.autoSave = event.radio_button.value
 
 
     def compose(self) -> ComposeResult:
@@ -90,7 +100,7 @@ class ScreenObject(Screen):
                         id="autoMergeButton"
                     )
 
-                    modelNames = []
+                    modelNames = ["None"]
                     for tup in ollama.list():
                         tup2 = tup[1]
                         for assistant in tup2:
@@ -125,6 +135,14 @@ class ScreenObject(Screen):
                             yield Label("Plugin Loader had a error.")
 
                 yield pluginsScroll
+
+
+            with Collapsible(title="Other"):
+                with containers.VerticalScroll() as otherScroll:
+                    otherScroll.can_focus = False
+                    otherScroll.add_class("accent")
+                    otherScroll.set_styles("width: 100%; height: auto; padding: 0 0 0 0;")
+                    yield RadioButton("Auto Save", value=config.autoSave, id="autoSaveRadio")
 
 
         yield Header(show_clock=True)

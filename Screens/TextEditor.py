@@ -17,7 +17,7 @@ from asyncio import to_thread
 import asyncio
 from datetime import datetime, timedelta
 from textual.events import DescendantFocus
-from textual import events
+from textual.timer import Timer
 
 def remove_code_snippets(markdown_text):
     """
@@ -159,6 +159,8 @@ class MergerScreen(Screen):
         if self.closedSnippets == len(self.snippets):
             self.app.pop_screen()
 
+        self.refresh(repaint=True)
+
 class ScreenObject(Screen):
     """Text Editor Screen."""
     
@@ -267,7 +269,20 @@ class ScreenObject(Screen):
 
         super().__init__(name, id, classes)
 
+    def check_for_updates(self):
+        if self.contentsOfFile != open(self.filePath.strip(), 'rb').read().decode('utf-8'):
+            if self.contentsOfFile == self.textArea.text:
+                self.contentsOfFile = open(self.filePath.strip(), 'rb').read().decode('utf-8')
+                curs = self.textArea.cursor_location
+                self.textArea.text = self.contentsOfFile
+                self.textArea.move_cursor(curs)
+                self.notify("File was modified outside of NEVER Editor!", severity="warning")
+            else:
+                self.contentsOfFile = open(self.filePath.strip(), 'rb').read().decode('utf-8')
+                self.notify("File was modified outside of NEVER Editor!", severity="warning")
+
     def _on_mount(self, event):
+        self.set_interval(1, self.check_for_updates)
         return super()._on_mount(event)
 
     def compose(self) -> ComposeResult:
@@ -333,15 +348,16 @@ class ScreenObject(Screen):
             self.textArea = NVRTextArea.code_editor(text=self.contentsOfFile, language="python", theme=config.textAreaTheme)
             yield self.textArea
 
-            with Collapsible(title=f"NEVER Coder: {config.ollamaModel}") as collapsible:
-                collapsible.styles.max_height = "50%"
-                self.aiChatCollapsible = collapsible
-                with containers.Vertical() as cont:
-                    cont.can_focus = False
-                    cont.styles.margin = (0, 4, 0, 0)
-                    self.aiChat = NVRTextArea.code_editor("", language="python", theme=config.textAreaTheme, read_only=True)
-                    yield self.aiChat
-                    yield Input(placeholder="Type here...").set_styles("dock: bottom; margin: 0 0 1 0;")
+            if config.ollamaModel is not None:
+                with Collapsible(title=f"NEVER Coder: {config.ollamaModel}") as collapsible:
+                    collapsible.styles.max_height = "50%"
+                    self.aiChatCollapsible = collapsible
+                    with containers.Vertical() as cont:
+                        cont.can_focus = False
+                        cont.styles.margin = (0, 4, 0, 0)
+                        self.aiChat = NVRTextArea.code_editor("", language="python", theme=config.textAreaTheme, read_only=True)
+                        yield self.aiChat
+                        yield Input(placeholder="Type here...").set_styles("dock: bottom; margin: 0 0 1 0;")
 
         yield Header(show_clock=True)
         yield Footer()
@@ -409,7 +425,7 @@ class ScreenObject(Screen):
                 self.aiChat.load_text(self.aiChat.text + cleanResponse + "\n")
                 event.input.value = ""
                 self.aiChat.set_loading(False)
-                if not config.autoMerge:
+                if not config.autoMerge and snippets is not None and len(snippets) > 0:
                     self.app.push_screen(MergerScreen(snippets=snippets, mainTextArea=self.textArea, this=self))
                 else:
                     self.textArea.text = fullyMergedCode
@@ -509,7 +525,23 @@ class ScreenObject(Screen):
                 self.refresh(repaint=True, recompose=True)
     
     async def on_text_area_changed(self, event: TextArea.Changed) -> None:
-        if event.text_area.text != self.contentsOfFile:
-            self.title = "*" + os.path.basename(self.filePath)
+        if config.autoSave:
+            try:
+                open(self.filePath.strip(), 'wb').write(self.textArea.text.encode('utf-8'))
+                self.contentsOfFile = self.textArea.text
+                self.sub_title = str(len(self.contentsOfFile.splitlines())+1) + " Lines"
+                self.title = os.path.basename(self.filePath)
+                if self.filePath not in self.workspace.config['updatedFiles']:
+                    self.workspace.config['updatedFiles'].append(self.filePath)
+                    fileNode = self.workspaceTree.root.add(os.path.basename(self.filePath))
+                    fileNode.data = self.filePath
+                    self.workspace.save()
+
+            except Exception as e:
+                self.app.clear_notifications()
+                self.notify(f"ERROR! {e.__class__.__name__}: {e.args[0]}", severity="error")
         else:
-            self.title = os.path.basename(self.filePath)
+            if event.text_area.text != self.contentsOfFile:
+                self.title = "*" + os.path.basename(self.filePath)
+            else:
+                self.title = os.path.basename(self.filePath)
