@@ -1,15 +1,13 @@
 from textual.app import ComposeResult
-from textual.binding import Binding
 from textual.widgets import *
-from textual.widget import Widget
 import textual.containers as containers
 import main
 from textual.screen import Screen
-import rich, re, os
+import os
 from Config import config
 from textual.widgets.selection_list import Selection
 import ollama
-from CustomWidgets import ReactiveLabel
+from Utilities import ReactiveLabel
 
 class ScreenObject(Screen):
     """Text Editor Screen."""

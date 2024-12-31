@@ -1,7 +1,7 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.widgets import *
-from CustomWidgets import NVRTextArea
+from Utilities import NVRTextArea, remove_code_snippets, WorkspaceClass, populate_tree
 import textual.containers as containers
 from textual.containers import Container
 from textual.screen import Screen
@@ -10,35 +10,12 @@ from PluginUtilities import PluginLoader, Plugin
 import os
 from Config import config
 from textual.widgets.tree import TreeNode
-import re, json
 import assistant, intellimerge
 from textual import work
 from asyncio import to_thread
 import asyncio
 from datetime import datetime, timedelta
 from textual.events import DescendantFocus
-from textual.timer import Timer
-
-def remove_code_snippets(markdown_text):
-    """
-    Removes code snippets from a Markdown string and leaves only the text.
-
-    Parameters:
-        markdown_text (str): The Markdown content.
-
-    Returns:
-        str: The Markdown content with code snippets removed.
-    """
-    # Regex pattern for fenced code blocks
-    code_block_pattern = r"```.*?\n(.*?)```"
-    
-    # Remove code snippets
-    text_without_code = re.sub(code_block_pattern, '', markdown_text, flags=re.DOTALL)
-    
-    # Remove extra blank lines left behind by the removal
-    cleaned_text = re.sub(r'\n\s*\n', '\n\n', text_without_code).strip()
-
-    return cleaned_text
 
 class ProjectSettingsScreen(Screen):
     TITLE = "Project Settings"
@@ -193,40 +170,6 @@ class ScreenObject(Screen):
         Binding("ctrl+shift+b", "redo_ai", "Redo AI Changes", "Redo AI Changes", priority=False, tooltip="Redo AI Changes."),
     ]
 
-    class WorkspaceClass:
-        def __init__(self, path):
-            self.config_path = path
-
-            if not os.path.exists(self.config_path):
-                with open(self.config_path, "w") as f:
-                    f.write(json.dumps({'updatedFiles': []}))
-                    f.close()
-
-            self.config = {}
-
-            self.load()
-
-
-        def load(self):
-            """Discover and load plugins from the plugins directory."""
-            if not os.path.exists(self.config_path):
-                open(self.config_path, "w").write(json.dumps({})).close()
-            else:
-                with open(self.config_path, "r") as config_file:
-                    self.config = json.load(config_file)
-
-        def save(self):
-            with open(self.config_path, "+w") as config_file:
-                json.dump(self.config, config_file, indent=4)
-
-        def get(self, key, default=None):
-            self.load()
-            return self.config.get(key, default)
-        
-        def set(self, key, value):
-            self.config[key] = value
-            self.save()
-
     def action_focus_tree(self):
         self.fileTree.focus()
 
@@ -263,7 +206,7 @@ class ScreenObject(Screen):
         self.TITLE = os.path.basename(filepath)
         self.SUB_TITLE = str(len(self.contentsOfFile.splitlines()) + 1) + " Lines"
 
-        self.workspace = self.WorkspaceClass(".workspace.json")
+        self.workspace = WorkspaceClass(".workspace.json")
 
         self.aiCodeHistory = [self.contentsOfFile]
 
@@ -300,7 +243,7 @@ class ScreenObject(Screen):
             with Container().set_styles(f"width: 100%; padding: 0 0 1 0;") as innerCont2:
                 self.fileTree = Tree(f"{self.mainDirectory}")
                 self.fileTree.root.expand()
-                self.populate_tree(self.fileTree.root, self.mainDirectory)
+                populate_tree(self.fileTree.root, self.mainDirectory)
 
                 self.workspaceTree = Tree(f"Workspace Files")
                 self.workspaceTree.root.expand()
@@ -388,14 +331,14 @@ class ScreenObject(Screen):
             open(os.path.join(self.mainDirectory, event.value), "w").write("")
             event.input.remove()
             self.fileTree.clear()
-            self.populate_tree(self.fileTree.root, self.mainDirectory)
+            populate_tree(self.fileTree.root, self.mainDirectory)
 
         elif event.input.id == "deleteFileInput" and event.value != "":
             try:
                 os.remove(os.path.join(self.mainDirectory, event.value))
                 event.input.remove()
                 self.fileTree.clear()
-                self.populate_tree(self.fileTree.root, self.mainDirectory)
+                populate_tree(self.fileTree.root, self.mainDirectory)
             except Exception as e: pass
 
         else:
@@ -436,23 +379,6 @@ class ScreenObject(Screen):
                 self.aiChat.set_loading(False)
                 break
 
-    def populate_tree(self, node: TreeNode, path):
-        """Recursively populate the self.tree with files and folders."""
-        try:
-            for entry in os.scandir(path):
-                if entry.is_dir():
-                    # Add a folder and expand it lazily
-                    folder_node = node.add(entry.name, expand=False)
-                    # Attach the path as data for future expansion
-                    folder_node.data = entry.path
-                elif entry.is_file():
-                    # Add a file leaf node
-                    file_node = node.add_leaf("📄 " + entry.name)
-                    file_node.data = entry.path
-        except PermissionError:
-            # Handle directories we can't access
-            node.add_leaf("[Access Denied]")
-
     async def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         selected_language = event.option.prompt
         syntax_name = selected_language.lower()
@@ -491,7 +417,7 @@ class ScreenObject(Screen):
         if event.control is self.fileTree:
             node = event.node
             if node.data and not node.children:
-                self.populate_tree(node, node.data)
+                populate_tree(node, node.data)
             event.stop()  # Prevent propagation for fileTree events
 
         elif event.control is self.workspaceTree:

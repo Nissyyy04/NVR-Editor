@@ -9,8 +9,7 @@ import os, shutil
 import string
 from PluginUtilities import PluginLoader
 from Config import config
-from textual.widgets.tree import TreeNode
-from CustomWidgets import NVRTextArea
+from Utilities import NVRTextArea, populate_tree, default_css
 
 class NVRMain(App):
     """Application with multiple screens."""
@@ -21,6 +20,10 @@ class NVRMain(App):
     PL: PluginLoader
     TITLE = "A simple Code Editor made in Python!"
     documentNever = os.path.join(os.getenv("USERPROFILE"), "Documents", "NEVER Editor")
+    if not os.path.exists(os.path.join(documentNever, "styles.tcss")):
+        with open(os.path.join(documentNever, "styles.tcss"), "+w") as f:
+            f.write(default_css)
+            f.close()
     CSS_PATH = os.path.join(documentNever, "styles.tcss")
 
     lastFocused: Widget = None
@@ -42,16 +45,17 @@ class NVRMain(App):
 
     async def action_back(self) -> None:
         # Go back one directory
-        parent_dir = os.path.dirname(os.getcwd())
-        if os.path.ismount(parent_dir):
-            self.tree.root.label = f"{parent_dir}"
-            self.tree.root.expand()
-        else:
-            self.tree.root.label = f"..\\{parent_dir}"
-            self.tree.root.expand()
-        os.chdir(parent_dir)  # Change to parent directory
-        self.tree.root.remove_children()  # Clear existing tree nodes
-        self.populate_tree(self.tree.root, parent_dir)
+        if len(self.screen_stack) == 1:
+            parent_dir = os.path.dirname(os.getcwd())
+            if os.path.ismount(parent_dir):
+                self.tree.root.label = f"{parent_dir}"
+                self.tree.root.expand()
+            else:
+                self.tree.root.label = f"..\\{parent_dir}"
+                self.tree.root.expand()
+            os.chdir(parent_dir)  # Change to parent directory
+            self.tree.root.remove_children()  # Clear existing tree nodes
+            populate_tree(self.tree.root, parent_dir)
 
     async def action_refresh(self) -> None:
         """Refresh the screen."""
@@ -112,30 +116,13 @@ class NVRMain(App):
         self.tree.ICON_NODE_EXPANDED = "📂 "
 
         # Start from the current directory
-        self.populate_tree(self.tree.root, os.getcwd())
+        populate_tree(self.tree.root, os.getcwd())
 
         with Container():
             yield self.tree
 
         yield Header(show_clock=True)
         yield Footer()
-
-    def populate_tree(self, node: TreeNode, path):
-        """Recursively populate the self.tree with files and folders."""
-        try:
-            for entry in os.scandir(path):
-                if entry.is_dir():
-                    # Add a folder and expand it lazily
-                    folder_node = node.add(entry.name, expand=False)
-                    # Attach the path as data for future expansion
-                    folder_node.data = entry.path
-                elif entry.is_file():
-                    # Add a file leaf node
-                    file_node = node.add_leaf("📄 " + entry.name)
-                    file_node.data = entry.path
-        except PermissionError:
-            # Handle directories we can't access
-            node.add_leaf("[Access Denied]")
 
     async def on_tree_node_expanded(self, event: Tree.NodeExpanded) -> None:
         """Handle lazy loading of folder contents when expanded."""
@@ -144,7 +131,7 @@ class NVRMain(App):
             if node.data:
                 # Populate the folder if it has not been populated yet
                 if not node.children:
-                    self.populate_tree(node, node.data)
+                    populate_tree(node, node.data)
 
             if node.is_expanded and not node.is_root:
                 node.collapse()
@@ -171,7 +158,7 @@ class NVRMain(App):
                 self.tree.root.expand()
             os.chdir(parent_dir)  # Change to parent directory
             node.remove_children()  # Clear existing tree nodes
-            self.populate_tree(node, parent_dir)
+            populate_tree(node, parent_dir)
         
         elif node.parent is self.driveTree.root:
             self.tree.root.label = f"{node.data}"
@@ -181,7 +168,7 @@ class NVRMain(App):
             #self.notify(f"Drive opened: {node.data}")
 
             self.tree.root.remove_children()  # Clear existing tree nodes
-            self.populate_tree(self.tree.root, os.getcwd())
+            populate_tree(self.tree.root, os.getcwd())
 
         elif node.data and node.parent is self.tree.root:
             item_type = "File" if os.path.isfile(node.data) else "Folder"
@@ -193,7 +180,7 @@ class NVRMain(App):
                 # Clear root and repopulate tree for new path
                 self.tree.root.remove_children()
                 self.tree.root.label = f"..\\{node.data}"
-                self.populate_tree(self.tree.root, node.data)
+                populate_tree(self.tree.root, node.data)
 
                 #self.notify(f"Folder opened: {node.data}")
             else:
