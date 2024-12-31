@@ -19,39 +19,39 @@ This tools AST merging functionality is a python implementation of the AST mergi
 ---
 
 ## Downloading the AI Model
-To use the **Qwen-2.5-Coder** model with **Ollama**, follow these steps:
+To use the **granite3.1-dense** model with **Ollama**, follow these steps:
 
 ## Step 1: Install Ollama
 Ensure that you have **Ollama** installed. If it's not already installed, download it from the [Ollama website](https://ollama.ai) and follow the installation instructions for your platform.
 
-## Step 2: Download Qwen-2.5-Coder
-Ollama provides a simple command-line interface to download and use models. To download the **Qwen-2.5-Coder** model:
+## Step 2: Download granite3.1-dense
+Ollama provides a simple command-line interface to download and use models. To download the **granite3.1-dense** model:
 1. Open your terminal.
 2. Run the following command:
 
    ```bash
-   ollama pull qwen-2.5-coder
+   ollama pull granite3.1-dense
    ```
 
-This command will fetch the Qwen-2.5-Coder model and prepare it for use.
+This command will fetch the granite3.1-dense model and prepare it for use.
 ## Step 3: Verify Installation
 To ensure the model is downloaded and available for use, run:
 ```bash
 ollama list
 ```
-This will display a list of models installed on your system. Ensure that **qwen-2.5-coder** is listed.
+This will display a list of models installed on your system. Ensure that **granite3.1-dense** is listed.
 
 ## Step 4 (OPTIONAL): Testing the model
-To test Qwen-2.5-Coder directly from Ollama, you can run:
+To test granite3.1-dense directly from Ollama, you can run:
 ```bash
-ollama chat qwen-2.5-coder
+ollama chat granite3.1-dense
 ```
 
 This opens an interactive chat with the model to verify its capabilities.
 
 ## Additional Resources
 - Visit the [Ollama Documentation](https://ollama.ai/docs) for detailed instructions and troubleshooting.
-- Explore the [Qwen-2.5-Coder GitHub Repository](https://github.com/openai/qwen-2.5-coder) (if available) for technical details and model-specific configurations.
+- Explore the [granite3.1-dense GitHub Repository](https://github.com/openai/granite3.1-dense) (if available) for technical details and model-specific configurations.
 ---
 
 
