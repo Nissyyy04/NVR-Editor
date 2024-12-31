@@ -7,6 +7,9 @@ import main
 from textual.screen import Screen
 import rich, re, os
 from Config import config
+from textual.widgets.selection_list import Selection
+import ollama
+from CustomWidgets import ReactiveLabel
 
 class ScreenObject(Screen):
     """Text Editor Screen."""
@@ -34,6 +37,12 @@ class ScreenObject(Screen):
             config.textAreaTheme = event.option.prompt
             self.textAreaThemeCollapsible.title = f"TextArea Theme - ({event.option.prompt})"
             self.refresh(repaint=True, layout=False, recompose=False)
+
+        elif event.option_list.id == "ollamaList":
+            config.set("ollamaModel", event.option.prompt)
+            config.ollamaModel = event.option.prompt
+            self.modelLabel.text = f"Local Models: {config.ollamaModel}"
+
     
     async def on_radio_button_changed(self, event: RadioButton.Changed) -> None:
         if event.radio_button.id == "pluginButton":
@@ -74,12 +83,25 @@ class ScreenObject(Screen):
                 with containers.VerticalScroll() as aiScroll:
                     aiScroll.can_focus = False
                     aiScroll.add_class("accent")
-                    aiScroll.set_styles("width: 100%; height: auto; padding: 0 0 0 0;")
+                    aiScroll.set_styles("width: 100%; height: auto; padding: 1 1 1 1;")
                     yield RadioButton(
                         label="Auto AST Merge",
                         value=config.autoMerge,
                         id="autoMergeButton"
                     )
+
+                    modelNames = []
+                    for tup in ollama.list():
+                        tup2 = tup[1]
+                        for assistant in tup2:
+                            modelNames.append(assistant.model)
+
+                    with containers.Vertical() as cont:
+                        cont.can_focus = False
+                        cont.set_styles("width: auto; height: auto;")
+                        self.modelLabel = ReactiveLabel(f"Local Models: {config.ollamaModel}").set_styles("width: auto; margin: 1 2 0 1;")
+                        yield self.modelLabel
+                        yield OptionList(*modelNames, id="ollamaList").set_styles("width: auto; padding: 0 2 0 2;")
 
             with Collapsible(title="Plugins"):
                 with containers.VerticalScroll() as pluginsScroll:

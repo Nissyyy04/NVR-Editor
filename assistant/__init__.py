@@ -8,12 +8,13 @@ import intellimerge
 class ArtificialIntelligence():
     history = []
 
-    def __init__(self, promptPath = None):
+    def __init__(self, model = "granite3.1-dense", promptPath = None):
         if not promptPath:
             raise Exception("No prompt path provided!")
 
         self.prompt = open(promptPath, "r").read()
         self.promptPath = promptPath
+        self.model = model
 
         self.history = [
             {
@@ -33,7 +34,7 @@ class ArtificialIntelligence():
                 'content': userPrompt,
             })
 
-        response: ChatResponse = chat(model='granite3.1-dense', messages=self.history)
+        response: ChatResponse = chat(model=self.model, messages=self.history)
 
         self.history.append({
             'role': 'assistant',

@@ -1,5 +1,33 @@
-from textual.widgets import TextArea
+from textual.widgets import TextArea, Label
 from textual import events
+from textual.reactive import reactive
+
+class ReactiveLabel(Label):
+    text = reactive("")
+
+    def __init__(
+        self, 
+        renderable="", 
+        *, 
+        variant=None, 
+        expand=False, 
+        shrink=False, 
+        markup=True, 
+        name=None, 
+        id=None, 
+        classes=None, 
+        disabled=False
+    ):
+        super().__init__(renderable, variant=variant, expand=expand, shrink=shrink, markup=markup, name=name, id=id, classes=classes, disabled=disabled)
+        self.text = renderable  # Initialize reactive text
+
+    def watch_text(self, new_value: str):
+        """Automatically update the label content when `text` changes."""
+        self.update(new_value)
+
+    def render(self):
+        """Define how the label is rendered."""
+        return self.text
 
 class NVRTextArea(TextArea):
     """A subclass of TextArea with enhanced functionality."""

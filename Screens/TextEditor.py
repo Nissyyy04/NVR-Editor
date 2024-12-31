@@ -179,7 +179,7 @@ class ScreenObject(Screen):
     aiCodeHistory = []
     thisFilePath = os.path.realpath(__file__)
 
-    never = assistant.ArtificialIntelligence(promptPath=os.path.join(thisFilePath, os.path.join(config.documentNever, ".prompts", "neverPrompt.txt")))
+    never = assistant.ArtificialIntelligence(model=config.ollamaModel, promptPath=os.path.join(thisFilePath, os.path.join(config.documentNever, ".prompts", "neverPrompt.txt")))
 
     currentReverts = 0
     lastExpandedNodeTime = datetime.now()
@@ -333,7 +333,7 @@ class ScreenObject(Screen):
             self.textArea = NVRTextArea.code_editor(text=self.contentsOfFile, language="python", theme=config.textAreaTheme)
             yield self.textArea
 
-            with Collapsible(title="NEVER Coder") as collapsible:
+            with Collapsible(title=f"NEVER Coder: {config.ollamaModel}") as collapsible:
                 collapsible.styles.max_height = "50%"
                 self.aiChatCollapsible = collapsible
                 with containers.Vertical() as cont:

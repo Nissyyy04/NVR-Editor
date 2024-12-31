@@ -1,0 +1,3 @@
+textual
+textual[syntax]
+ollama

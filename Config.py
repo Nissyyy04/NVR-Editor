@@ -111,6 +111,7 @@ class NVRConfig:
 
         self.load()
 
+        self.ollamaModel = self.config.get("ollamaModel", None)
         self.theme = self.config.get("theme", "gruvbox")
         self.textAreaTheme = self.config.get("textAreaTheme", "monokai")
         self.autoMerge: bool = self.config.get("autoMerge", False)
