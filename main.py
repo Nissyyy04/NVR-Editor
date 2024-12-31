@@ -20,11 +20,11 @@ class NVRMain(App):
     pluginsTree: Tree[str] = None
     PL: PluginLoader
     TITLE = "A simple Code Editor made in Python!"
-    CSS_PATH = "styles.tcss"
+    documentNever = os.path.join(os.getenv("USERPROFILE"), "Documents", "NEVER Editor")
+    CSS_PATH = os.path.join(documentNever, "styles.tcss")
 
     lastFocused: Widget = None
 
-    documentNever = os.path.join(os.getenv("USERPROFILE"), "Documents", "NEVER Editor")
 
     BINDINGS = [
         Binding(key="b", action="pop_screen", description="Go back to last Screen", priority=True, tooltip="Go back to last Screen", show="Back"),
