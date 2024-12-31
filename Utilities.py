@@ -114,9 +114,6 @@ Failure to encapsulate methods in their parent class or to follow the rules will
 
 ---"""
 
-
-
-
 class ReactiveLabel(Label):
     text = reactive("")
 

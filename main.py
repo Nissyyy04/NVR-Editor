@@ -5,7 +5,7 @@ from textual.screen import Screen
 from textual.events import DescendantFocus
 from typing import Iterable
 from Screens import TextEditor, Settings
-import os, shutil
+import os, shutil, sys
 import string
 from PluginUtilities import PluginLoader
 from Config import config
@@ -34,10 +34,36 @@ class NVRMain(App):
         Binding("ctrl+r", "refresh", "Refresh", "Refresh the screen", priority=True, tooltip="Refresh the screen"),
         Binding("escape", "back", "CD ..", "Go back one directory", priority=False, tooltip="Go back one directory"),
         Binding("ctrl+o", "openSettings", "Settings", "Open the settings screen", priority=True, tooltip="Open the settings screen"),
+        Binding("ctrl+insert", "newFile", "Create File", "Create a new File", priority=False, tooltip="Create a new File"),
+        Binding("ctrl+home", "newFolder", "Create Folder", "Create a new Folder", priority=False, tooltip="Create a new Folder"),
+        Binding("ctrl+delete", "deletePath", "Delete Path", "Delete a Path (File/Folder)", priority=False, tooltip="Delete a Path (File/Folder)"),
     ]
+
+    def __init__(self, driver_class = None, css_path = None, watch_css = False, ansi_color = False, filepath:str = None):
+        self.filepath = filepath
+        super().__init__(driver_class, css_path, watch_css, ansi_color)
 
     async def on_descendant_focus(self, event: DescendantFocus) -> None:
         self.lastFocused = event.control
+        
+        inp = None
+        inp2 = None
+
+        try:
+            inp = self.query_one("#newFileInput", Input)
+        except Exception as e: pass
+        try:
+            inp2 = self.query_one("#newFolderInput", Input)
+        except Exception as e: pass
+
+        if inp or inp2:
+            if inp:
+                if inp is not event.control:
+                    inp.remove()
+            
+            if inp2:
+                if inp2 is not event.control:
+                    inp2.remove()
 
     async def action_pop_screen(self) -> None:
         if len(self.app.screen_stack) > 1 and self.lastFocused is not NVRTextArea and self.lastFocused is not Input:
@@ -56,6 +82,57 @@ class NVRMain(App):
             os.chdir(parent_dir)  # Change to parent directory
             self.tree.root.remove_children()  # Clear existing tree nodes
             populate_tree(self.tree.root, parent_dir)
+
+    async def action_newFile(self) -> None:
+        try:
+            if self.query_one("#newFileInput", Input) is None:
+                self.mount(Input(placeholder='File Name (e.g. "newFile.py"): ', id="newFileInput").set_styles("width: 100%;").focus())
+        except Exception as e:
+            self.mount(Input(placeholder='File Name (e.g. "newFile.py"): ', id="newFileInput").set_styles("width: 100%;").focus())
+
+    async def action_deletePath(self) -> None:
+        try:
+            if self.query_one("#deletePathInput", Input) is None:
+                self.mount(Input(placeholder='Path (e.g. "file.py", "Folder"): ', id="deletePathInput").set_styles("width: 100%;").focus())
+        except Exception as e:
+            self.mount(Input(placeholder='Path (e.g. "file.py", "Folder"): ', id="deletePathInput").set_styles("width: 100%;").focus())
+
+    async def action_newFolder(self) -> None:
+        try:
+            if self.query_one("#newFolderInput", Input) is None:
+                self.mount(Input(placeholder='Folder Name (e.g. "New Folder"): ', id="newFolderInput").set_styles("width: 100%;").focus())
+        except Exception as e:
+            self.mount(Input(placeholder='Folder Name (e.g. "New Folder"): ', id="newFolderInput").set_styles("width: 100%;").focus())
+
+    async def on_input_submitted(self, event: Input.Submitted):
+        if event.input.id == "newFileInput" and event.value != "":
+            try:
+                open(os.path.join(os.getcwd(), event.value), "w").write("")
+            except Exception as e:
+                self.notify(f"Failed to create {event.value}!\n{e}")
+
+        elif event.input.id == "newFolderInput" and event.value != "":
+            try:
+                os.makedirs(os.path.join(os.getcwd(), event.value))
+            except Exception as e:
+                self.notify(f"Failed to create {event.value}!\n{e}")
+                
+        elif event.input.id == "deletePathInput" and event.value != "":
+            try:
+                if not os.path.isdir(os.path.join(os.getcwd(), event.value)):
+                    os.remove(os.path.join(os.getcwd(), event.value))
+                else:
+                    shutil.rmtree(os.path.join(os.getcwd(), event.value))
+            except Exception as e:
+                self.notify(f"Failed to delete {event.value}!\n{e}")
+        event.input.remove()
+        if type(self.screen) is TextEditor.ScreenObject:
+            self.notify("Yep")
+            self.screen.fileTree.clear()
+            populate_tree(self.screen.fileTree.root, os.getcwd())
+        else:
+            self.tree.clear()
+            populate_tree(self.tree.root, os.getcwd())
 
     async def action_refresh(self) -> None:
         """Refresh the screen."""
@@ -78,6 +155,9 @@ class NVRMain(App):
 
     def on_mount(self) -> None:
         """Set up screens when the app starts."""
+        if self.filepath:
+            self.push_screen(TextEditor.ScreenObject(filepath=self.filepath))
+
         config.documentNever = self.documentNever
         self.theme = config.theme
         
@@ -109,7 +189,7 @@ class NVRMain(App):
             yield Label("Sidebar").set_styles("text-align: center; width: 100%;")
             yield driveTree
             yield pluginsTree
-
+        
         self.tree = Tree(f"..{os.getcwd()}")
         self.tree.root.expand()
         self.tree.ICON_NODE = "📁 "
@@ -118,7 +198,8 @@ class NVRMain(App):
         # Start from the current directory
         populate_tree(self.tree.root, os.getcwd())
 
-        with Container():
+        with Container() as contentContainer:
+            self.contentContainer = contentContainer
             yield self.tree
 
         yield Header(show_clock=True)
@@ -208,4 +289,10 @@ class NVRMain(App):
 
 
 if __name__ == "__main__":
-    NVRMain().run()
+    if len(sys.argv) > 1:
+        if sys.argv[1] and os.path.exists(sys.argv[1]):
+            NVRMain(filepath=sys.argv[1]).run()
+        else:
+            print("INVALID PATH: Path doesn't exist!")
+    else:
+        NVRMain().run()

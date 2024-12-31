@@ -7,9 +7,8 @@ from textual.containers import Container
 from textual.screen import Screen
 from Screens import Settings
 from PluginUtilities import PluginLoader, Plugin
-import os
+import os, shutil
 from Config import config
-from textual.widgets.tree import TreeNode
 import assistant, intellimerge
 from textual import work
 from asyncio import to_thread
@@ -31,7 +30,7 @@ class ProjectSettingsScreen(Screen):
         return super()._on_mount(event)
 
     def on_radio_button_changed(self, event: RadioButton.Changed) -> None:
-        if event.radio_button.id == "pluginButton":
+        if event.radio_button.id == "pluginButton" and self.filepath:
             if event.radio_button.data:
                 data: Plugin = event.radio_button.data
                 if event.radio_button.value:
@@ -165,10 +164,32 @@ class ScreenObject(Screen):
 
     BINDINGS = [
         Binding("ctrl+s", "save", "Save", "Save contents of the TextArea to said file", priority=True, tooltip="Save contents of TextArea to said file"),
-        Binding("ctrl+t", "focus_tree", "Focus on the File Tree", "Focus on the File Tree", priority=True, tooltip="Focus on the File Tree"),
         Binding("ctrl+b", "undo_ai", "Undo AI Changes", "Undo AI Changes", priority=False, tooltip="Undo AI Changes."),
         Binding("ctrl+shift+b", "redo_ai", "Redo AI Changes", "Redo AI Changes", priority=False, tooltip="Redo AI Changes."),
+        Binding("escape", action="none", show=False),
     ]
+
+    async def on_descendant_focus(self, event: DescendantFocus) -> None:
+        self.lastFocused = event.control
+        
+        inp = None
+        inp2 = None
+
+        try:
+            inp = self.query_one("#newFileInput", Input)
+        except Exception as e: pass
+        try:
+            inp2 = self.query_one("#newFolderInput", Input)
+        except Exception as e: pass
+
+        if inp or inp2:
+            if inp:
+                if inp is not event.control:
+                    inp.remove()
+            
+            if inp2:
+                if inp2 is not event.control:
+                    inp2.remove()
 
     def action_focus_tree(self):
         self.fileTree.focus()
@@ -184,6 +205,7 @@ class ScreenObject(Screen):
             self.currentReverts += 1
 
     def action_save(self):
+        if not self.filePath: return
         try:
             open(self.filePath.strip(), 'wb').write(self.textArea.text.encode('utf-8'))
             self.contentsOfFile = self.textArea.text
@@ -200,9 +222,15 @@ class ScreenObject(Screen):
             self.notify(f"ERROR! {e.__class__.__name__}: {e.args[0]}", severity="error")
     
     def __init__(self, name=None, id=None, classes=None, filepath: str = None):
-        self.filePath = filepath
-        self.mainDirectory = os.path.dirname(filepath)
-        self.contentsOfFile = open(filepath.strip(), 'rb').read().decode('utf-8')
+        self.mainDirectory = os.path.dirname(filepath) if os.path.isfile(filepath) else filepath
+        if not os.path.exists(self.mainDirectory):
+            self.mainDirectory = os.getcwd()
+        if os.path.isfile(os.path.join(self.mainDirectory, filepath.strip())):
+            self.filePath = filepath
+            self.contentsOfFile = open(os.path.join(self.mainDirectory, filepath.strip()), 'rb').read().decode('utf-8')
+        else:
+            self.filePath = None
+            self.contentsOfFile = "NO FILE SELECTED"
         self.TITLE = os.path.basename(filepath)
         self.SUB_TITLE = str(len(self.contentsOfFile.splitlines()) + 1) + " Lines"
 
@@ -213,6 +241,8 @@ class ScreenObject(Screen):
         super().__init__(name, id, classes)
 
     def check_for_updates(self):
+        if self.filePath is None:
+            return
         if self.contentsOfFile != open(self.filePath.strip(), 'rb').read().decode('utf-8'):
             if self.contentsOfFile == self.textArea.text:
                 self.contentsOfFile = open(self.filePath.strip(), 'rb').read().decode('utf-8')
@@ -260,17 +290,6 @@ class ScreenObject(Screen):
                 
                 yield Label("Workarea").set_styles("text-align: center; width: 100%;")
 
-                # Start from the current directory
-                with containers.Horizontal() as cont:
-                    cont.set_styles("width: 100%; height: 1; align: center middle; padding: 0 1 0 1;")
-                    self.newFileButton = Button("New File", id="newFileButton", variant="primary")
-                    self.newFileButton.set_styles("height: 1; width: auto; min-height: 1; border: none;")
-                    self.deleteFileButton = Button("Delete File", id="deleteFileButton", variant="warning")
-                    self.deleteFileButton.set_styles("height: 1; width: auto; min-height: 1; border: none;")
-                    
-                    yield self.newFileButton
-                    yield self.deleteFileButton
-
                 yield self.fileTree
                 yield self.workspaceTree
 
@@ -300,52 +319,19 @@ class ScreenObject(Screen):
                         cont.styles.margin = (0, 4, 0, 0)
                         self.aiChat = NVRTextArea.code_editor("", language="python", theme=config.textAreaTheme, read_only=True)
                         yield self.aiChat
-                        yield Input(placeholder="Type here...").set_styles("dock: bottom; margin: 0 0 1 0;")
+                        yield Input(placeholder="Type here...", id="aiInput").set_styles("dock: bottom; margin: 0 0 1 0;")
 
         yield Header(show_clock=True)
         yield Footer()
 
-
-    async def on_descendant_focus(self, event: DescendantFocus):
-        inp = None
-        inp2 = None
-
-        try:
-            inp = self.query_one("#newFileInput", Input)
-        except Exception as e: pass
-        try:
-            inp2 = self.query_one("#deleteFileInput", Input)
-        except Exception as e: pass
-
-        if inp or inp2:
-            if inp:
-                if inp is not event.control:
-                    inp.remove()
-            
-            if inp2:
-                if inp2 is not event.control:
-                    inp2.remove()
-
     async def on_input_submitted(self, event: Input.Submitted):
-        if event.input.id == "newFileInput" and event.value != "":
-            open(os.path.join(self.mainDirectory, event.value), "w").write("")
-            event.input.remove()
-            self.fileTree.clear()
-            populate_tree(self.fileTree.root, self.mainDirectory)
-
-        elif event.input.id == "deleteFileInput" and event.value != "":
-            try:
-                os.remove(os.path.join(self.mainDirectory, event.value))
-                event.input.remove()
-                self.fileTree.clear()
-                populate_tree(self.fileTree.root, self.mainDirectory)
-            except Exception as e: pass
-
-        else:
+        if event.input.id == "aiInput":
             try:
                 self.aiCodeHistory.append(self.textArea.text)
                 self.auto_generate(event)
             except Exception as e: pass
+        else:
+            pass
 
     @work(exclusive=True, thread=False)
     async def auto_generate(self, event: Input.Submitted):
@@ -401,15 +387,6 @@ class ScreenObject(Screen):
         elif event.button.id == "projectSettings":
             self.app.push_screen(ProjectSettingsScreen(filepath=self.mainDirectory))
 
-        elif event.button.id == "newFileButton":
-            inp = Input(placeholder="File Name (e.g. newFile.py): ", id="newFileInput").set_styles("width: 100%;")
-            inp.focus()
-            self.screen.mount(inp, after=self.newFileButton.parent)
-        elif event.button.id == "deleteFileButton":
-            inp = Input(placeholder="File Name (e.g. fileToDelete.py): ", id="deleteFileInput").set_styles("width: 100%;")
-            inp.focus()
-            self.screen.mount(inp, after=self.newFileButton.parent)
-
     async def on_tree_node_expanded(self, event: Tree.NodeExpanded) -> None:
         """Handle lazy loading of folder contents when expanded."""
         now = datetime.now()
@@ -451,7 +428,7 @@ class ScreenObject(Screen):
                 self.refresh(repaint=True, recompose=True)
     
     async def on_text_area_changed(self, event: TextArea.Changed) -> None:
-        if config.autoSave:
+        if config.autoSave and self.filePath:
             try:
                 open(self.filePath.strip(), 'wb').write(self.textArea.text.encode('utf-8'))
                 self.contentsOfFile = self.textArea.text
@@ -467,7 +444,7 @@ class ScreenObject(Screen):
                 self.app.clear_notifications()
                 self.notify(f"ERROR! {e.__class__.__name__}: {e.args[0]}", severity="error")
         else:
-            if event.text_area.text != self.contentsOfFile:
+            if event.text_area.text != self.contentsOfFile and self.filePath:
                 self.title = "*" + os.path.basename(self.filePath)
-            else:
+            elif self.filePath:
                 self.title = os.path.basename(self.filePath)
