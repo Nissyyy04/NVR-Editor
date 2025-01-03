@@ -105,17 +105,29 @@ class NVRMain(App):
             self.mount(Input(placeholder='Folder Name (e.g. "New Folder"): ', id="newFolderInput").set_styles("width: 100%;").focus())
 
     async def on_input_submitted(self, event: Input.Submitted):
+        def _doStuff(event: Input.Submitted) -> None:
+            event.input.remove()
+            if type(self.screen) is TextEditor.ScreenObject:
+                self.screen.fileTree.clear()
+                populate_tree(self.screen.fileTree.root, os.getcwd())
+            else:
+                self.tree.clear()
+                populate_tree(self.tree.root, os.getcwd())
+            _doStuff(event)
+
         if event.input.id == "newFileInput" and event.value != "":
             try:
                 open(os.path.join(os.getcwd(), event.value), "w").write("")
             except Exception as e:
                 self.notify(f"Failed to create {event.value}!\n{e}")
+            _doStuff(event)
 
         elif event.input.id == "newFolderInput" and event.value != "":
             try:
                 os.makedirs(os.path.join(os.getcwd(), event.value))
             except Exception as e:
                 self.notify(f"Failed to create {event.value}!\n{e}")
+            _doStuff(event)
                 
         elif event.input.id == "deletePathInput" and event.value != "":
             try:
@@ -125,14 +137,7 @@ class NVRMain(App):
                     shutil.rmtree(os.path.join(os.getcwd(), event.value))
             except Exception as e:
                 self.notify(f"Failed to delete {event.value}!\n{e}")
-        event.input.remove()
-        if type(self.screen) is TextEditor.ScreenObject:
-            self.notify("Yep")
-            self.screen.fileTree.clear()
-            populate_tree(self.screen.fileTree.root, os.getcwd())
-        else:
-            self.tree.clear()
-            populate_tree(self.tree.root, os.getcwd())
+            _doStuff(event)
 
     async def action_refresh(self) -> None:
         """Refresh the screen."""

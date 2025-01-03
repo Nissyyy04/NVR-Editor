@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+    color: rgb(100, 100, 100);
+    opacity: 100%; /* Firefox */
+    transition: color 0.5s;
+}
+
+*{
+    transition: 0.3s;
+}
+::selection{
+    background-color: transparent;
+}
+
+:root {
+    --size: 15px;
+}
+
+body{
+    color: white;
+    place-items: center;
+    min-height: 100vh;
+    background: hsl(0 0% 6%);
+    overflow-y: hidden;
+    overflow-x: hidden;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: bold;
+    transition: none;
+}
+
+.el {
+    background: darkgreen;
+    width: 100%;
+    height: 100%;
+    -webkit-mask:
+        radial-gradient(circle at 50% 50%, white 1px, transparent 2.5px) 50% 50% / var(--size) var(--size),
+        url("https://assets.codepen.io/605876/noise-mask.png") 256px 50% / 256px 256px;
+            mask:
+        radial-gradient(circle at 50% 50%, white 1px, transparent 2.5px) 50% 50% / var(--size) var(--size),
+        url("https://assets.codepen.io/605876/noise-mask.png") 256px 50% / 256px 256px;
+    -webkit-mask-composite: source-in, xor;
+            mask-composite: intersect;
+    -webkit-animation: flicker 20s infinite linear;
+            animation: flicker 20s infinite linear;
+    filter: contrast(0.0);
+    transition: 0.5s;
+}
+.el:hover{
+    filter: contrast(1) brightness(1.0);
+    transform: scale(1.015);
+}
+
+@-webkit-keyframes flicker {
+    to {
+        -webkit-mask-position: 50% 50%, 0 50%;
+                mask-position: 50% 50%, 0 50%;
+    }
+}
+
+@keyframes flicker {
+    to {
+        -webkit-mask-position: 50% 50%, 0 50%;
+                mask-position: 50% 50%, 0 50%;
+    }
+}
+
+div{
+    cursor: default;
+}
+
+.innerHeader{
+    position: sticky;    
+    top: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: rgba(125, 125, 125, 0.3) solid 1px;
+    border-radius: 6px;
+    overflow: hidden;
+    text-align: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 93%;
+    height: 200px !important;
+    margin: 20px;
+    padding: 20px;
+    z-index: 100;
+    border-top: darkcyan solid 1px;
+    border-left: darkcyan solid 1px;
+    border-right: darkcyan solid 1px;
+    border-bottom: darkcyan solid 1px;
+
+}
+
+.title{
+    cursor: pointer;
+}
+.title:is(:hover, :focus){
+    color: rgb(0, 173, 173);
+}
+
+.center-panel{
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70vw;
+    height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(50, 50, 50, 0.1);
+    backdrop-filter: blur(3px);
+    border: rgba(125, 125, 125, 0.3) solid 1px;
+    border-radius: 13px;
+    align-items: center;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    gap: 1rem;
+}
+
+.productImage{
+    width: 40vw;
+    border-radius: 10px;
+    border: transparent solid 1px;
+}
+.productImage:is(:hover, :focus){
+    width: 41vw;
+    border: 1px solid darkcyan;
+}
+
+.label{
+    font-weight: normal;
+    width: 40vw;
+    text-align: center;
+    padding: 20px;
+}
+.label:hover{
+    color: rgb(200, 200, 200);
+}
+
+button{
+    width: 20vw;
+    height: 5vh;
+    border-radius: 10px;
+    border: transparent solid 1px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: rgba(125, 125, 125, 0.3) solid 1px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: row;
+    cursor: pointer;
+    transition: 0.3s;
+    gap: 0.5rem;
+    font-weight: bold;
+}
+
+button:hover{
+    border: darkcyan solid 1px;
+}
+
+ion-icon{
+    font-size: 1.5rem;
+}
