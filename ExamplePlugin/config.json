@@ -1,0 +1,7 @@
+{
+    "name": "Example Plugin",
+    "description": "A simple example plugin.",
+    "entry_point": "testplugin.ExamplePlugin",
+    "enabled": true,
+    "projectPreferences": {}
+}
