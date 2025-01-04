@@ -6,7 +6,8 @@
 }
 
 *{
-    transition: 0.3s;
+    transition: 1s;
+    scroll-behavior: smooth;
 }
 ::selection{
     background-color: transparent;
@@ -42,12 +43,12 @@ body{
             mask-composite: intersect;
     -webkit-animation: flicker 20s infinite linear;
             animation: flicker 20s infinite linear;
-    filter: contrast(0.0);
-    transition: 0.5s;
+    filter: contrast(0.0) brightness(1);
+    transition: 1s;
 }
-.el:hover{
-    filter: contrast(1) brightness(1.0);
-    transform: scale(1.015);
+.el:not(:is(:hover, :focus)){
+    filter: contrast(1) brightness(1.5);
+    transform: scale(1.015); 
 }
 
 @-webkit-keyframes flicker {
@@ -71,7 +72,7 @@ div{
 .innerHeader{
     position: sticky;    
     top: 20px;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, 1);
     backdrop-filter: blur(10px);
     border: rgba(125, 125, 125, 0.3) solid 1px;
     border-radius: 6px;
@@ -90,11 +91,14 @@ div{
     border-left: darkcyan solid 1px;
     border-right: darkcyan solid 1px;
     border-bottom: darkcyan solid 1px;
-
+}
+.innerHeader:is(:hover, :focus){
+    filter: drop-shadow(0 0 10px darkcyan);
 }
 
 .title{
     cursor: pointer;
+    transition: 0.3s;
 }
 .title:is(:hover, :focus){
     color: rgb(0, 173, 173);
@@ -110,12 +114,13 @@ div{
     display: flex;
     flex-direction: column;
     background-color: rgba(50, 50, 50, 0.1);
-    backdrop-filter: blur(3px);
     border: rgba(125, 125, 125, 0.3) solid 1px;
     border-radius: 13px;
     align-items: center;
     overflow-x: hidden;
     overflow-y: scroll;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
     gap: 1rem;
 }
 
@@ -134,8 +139,9 @@ div{
     width: 40vw;
     text-align: center;
     padding: 20px;
+    transition: 0.3s;
 }
-.label:hover{
+.label:is(:hover, :focus){
     color: rgb(200, 200, 200);
 }
 
@@ -158,7 +164,7 @@ button{
     font-weight: bold;
 }
 
-button:hover{
+button:is(:hover, :focus){
     border: darkcyan solid 1px;
 }
 
