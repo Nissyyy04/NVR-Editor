@@ -8,6 +8,7 @@
 *{
     transition: 1s;
     scroll-behavior: smooth;
+    transform: translateZ(0);
 }
 ::selection{
     background-color: transparent;
@@ -15,6 +16,9 @@
 
 :root {
     --size: 15px;
+    --cWidth: 70vw;
+    --cHeight: 70vh;
+    --maximized: 0;
 }
 
 body{
@@ -93,7 +97,7 @@ div{
     border-bottom: darkcyan solid 1px;
 }
 .innerHeader:is(:hover, :focus){
-    filter: drop-shadow(0 0 10px darkcyan);
+    filter: drop-shadow(0 0 5px darkcyan);
 }
 
 .title{
@@ -109,8 +113,8 @@ div{
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 70vw;
-    height: 70vh;
+    width: var(--cWidth);
+    height: var(--cHeight);
     display: flex;
     flex-direction: column;
     background-color: rgba(50, 50, 50, 0.1);
